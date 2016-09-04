@@ -260,7 +260,7 @@ public class BluetoothChatService {
         // Send a failure message back to the Activity
         Message msg = mHandler.obtainMessage(Constants.MESSAGE_TOAST);
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.TOAST, "Unable to connect device");
+        bundle.putString(Constants.TOAST, "接続に失敗しました。再度、接続して下さい。");
         msg.setData(bundle);
         mHandler.sendMessage(msg);
 
@@ -470,6 +470,10 @@ public class BluetoothChatService {
 
         public void run() {
             Log.i(TAG, "BEGIN mConnectedThread");
+            //相手からの受信は受けない
+            if (true) {
+                return;
+            }
             byte[] buffer = new byte[1024];
             int bytes;
 

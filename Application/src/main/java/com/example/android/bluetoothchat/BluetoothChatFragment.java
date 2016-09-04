@@ -20,13 +20,17 @@ import android.app.ActionBar;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.hardware.camera2.params.InputConfiguration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
 import android.support.annotation.Nullable;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
+import android.text.InputType;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -35,6 +39,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
@@ -59,6 +64,13 @@ public class BluetoothChatFragment extends Fragment {
     // Intent request codes
     private static final int REQUEST_CONNECT_DEVICE_SECURE = 1;
     private static final int REQUEST_CONNECT_DEVICE_INSECURE = 2;
+/*
+2016.4.28 kubota
+    static {
+        REQUEST_CONNECT_DEVICE_INSECURE = 2;
+        REQUEST_CONNECT_DEVICE_SECURE = 1;
+    }
+*/
     private static final int REQUEST_ENABLE_BT = 3;
 
     // Layout Views
@@ -68,7 +80,7 @@ public class BluetoothChatFragment extends Fragment {
 
     private String mBarCode = null; // バーコード文字列
     private String mQty = null;     // 印刷枚数
-
+    private String mAddress = null; //Bluetoothアドレス
     /**
      * Name of the connected device
      */
@@ -162,10 +174,11 @@ public class BluetoothChatFragment extends Fragment {
     }
 
     /**
+     * チャット準備
      * Set up the UI and background operations for chat.
      */
     private void setupChat() {
-        Log.d(TAG, "setupChat()");
+//        Log.d(TAG, "setupChat()");
 
         // Initialize the array adapter for the conversation thread
         mConversationArrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.message);
@@ -174,7 +187,9 @@ public class BluetoothChatFragment extends Fragment {
 
         // Initialize the compose field with a listener for the return key
         mOutEditText.setOnEditorActionListener(mWriteListener);
-
+        // 数字キーボードを表示
+        mOutEditText.setRawInputType(Configuration.KEYBOARD_QWERTY);
+//        mOutEditText.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_CHARACTERS);
         // Initialize the send button with a listener that for click events
         mSendButton.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
@@ -193,6 +208,10 @@ public class BluetoothChatFragment extends Fragment {
 
         // Initialize the buffer for outgoing messages
         mOutStringBuffer = new StringBuffer("");
+        // アプリ名 バージョン表示
+        addListView(getResources().getText(R.string.app_name).toString()
+                    + " " + getResources().getText(R.string.version).toString());
+        addListView("DaVinci本体のバーコードを読み込んで下さい。");
     }
 
     /**
@@ -214,25 +233,31 @@ public class BluetoothChatFragment extends Fragment {
      */
     private void sendMessage(String message) {
         // Check that we're actually connected before trying anything
-        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
-            Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
-            return;
-        }
+//        if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+//            if ( mAddress != null) {
+//                addListView("再接続: " + mAddress);
+//                connectDeviceByAddress(mAddress, false);
+//            }else{
+//                addListView("未接続: アドレスなし");
+//                Toast.makeText(getActivity(), R.string.not_connected, Toast.LENGTH_SHORT).show();
+//            }
+//            return;
+//        }
 
         // Check that there's actually something to send
         if (message.length() > 0) {
             // Get the message bytes and tell the BluetoothChatService to write
             byte[] send = message.getBytes();
             mChatService.write(send);
-
-            // Reset out string buffer to zero and clear the edit text field
-            mOutStringBuffer.setLength(0);
-            mOutEditText.setText(mOutStringBuffer);
+          // Reset out string buffer to zero and clear the edit text field
+//            mOutStringBuffer.setLength(0);
+//            mOutEditText.setText(mOutStringBuffer);
         }
     }
 
     /**
      * The action listener for the EditText widget, to listen for the return key
+     * テキスト入力イベント KeyEvent.ACTION_UP
      */
     private TextView.OnEditorActionListener mWriteListener
             = new TextView.OnEditorActionListener() {
@@ -246,42 +271,119 @@ public class BluetoothChatFragment extends Fragment {
         }
     };
 
-    private void inputText(String s) {
+    /**
+     *  テキストボックスクリア
+     */
+    private void clearText() {
+        mOutStringBuffer.setLength(0);
+        mOutEditText.setText(mOutStringBuffer);
+    }
+
+    /**
+     * BlueTooth MACアドレス
+     */
+    private Boolean isMACAdrs(String macAdrs) {
+//        String reg = "^([0-9A-Fa-f]{2}[:-]){5}[0-9A-Fa-f]{2}$";
+        String reg = "^([0-9A-F]{2}){6}$";
+
+        Pattern p = Pattern.compile(reg);
+        Matcher m = p.matcher(macAdrs);
+
+        return m.find();
+    }
+
+    /**
+     * 印刷枚数(数字３桁)かどうか
+     */
+    private boolean isQty(String s) {
+        s = s.trim();
+        if (s.length() == 0) {
+            // 空白は 1
+            mQty = "1";
+            return true;
+        }
+        // 数字３桁(999)
         Pattern p = Pattern.compile("^\\d{1,3}$");
         Matcher m = p.matcher(s);
-        if (m.find()) {
-            mQty = s;
-        } else {
-            mBarCode = s;
-            mConversationArrayAdapter.clear();
-            mConversationArrayAdapter.add(mBarCode);
+        if (!m.find()) {
+            return false;
+        }
+        mQty = s;
+        return true;
+    }
 
-            // Reset out string buffer to zero and clear the edit text field
-            mOutStringBuffer.setLength(0);
-            mOutEditText.setText(mOutStringBuffer);
+    /**
+     * 入力処理
+     */
+    private void inputText(String s) {
+        s = s.trim();
+        if (isQty(s) == true) {
+            //数字(枚数)
+            //現在日時を取得する
+            Calendar c = Calendar.getInstance();
+            //フォーマットパターンを指定して表示する
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy.M.d");
+            String mDate = sdf.format(c.getTime());
+
+            addListView("印刷開始");
+            addListView(mConnectedDeviceName + "：" + mAddress);
+            addListView("品番：" + mBarCode);
+            addListView("日付：" + mDate);
+            addListView("枚数：" + mQty);
+//            addListView("接続: " + mAddress);
+//            connectDeviceByAddress(mAddress,false);
+            if (mChatService.getState() != BluetoothChatService.STATE_CONNECTED) {
+                if ( mAddress != null) {
+                    addListView("再接続: " + mAddress);
+                    connectDeviceByAddress(mAddress, false);
+                }else{
+                    addListView("DaVinciと切断されました。本体のバーコードを読み込んで下さい。");
+                    return;
+                }
+            }
+            sendMessage("JOB\n");
+            sendMessage("DEF MK=1,MD=1,DR=2,DK=12,MS=39,PO=45,TO=110,PH=344,PW=384,UM=12,BM=12,XO=0,AF=1\n");
+            sendMessage("START\n");
+            sendMessage("BCD TP=7,X=0,Y=0,NW=1,RA=2,MG=1,HT=80\n");
+            sendMessage(mBarCode + "\n");
+            sendMessage("FONT TP=7,CS=0,LG=60,WD=48,LS=0\n");
+            sendMessage("TEXT X=0,Y=120,L=1\n");
+            sendMessage(mBarCode + "\n");
+            sendMessage("FONT TP=27,CS=0,LG=32,WD=32,LS=0\n");
+            sendMessage("TEXT X=0,Y=260,L=1\n");
+            sendMessage(mDate + "\n");
+            sendMessage("TEXT X=250,Y=260,L=1,NS=1,NE=3,NK=1,NI=1,NZ=1,NB=0\n");
+            sendMessage("001/" + mQty + "\n");
+            sendMessage("QTY P=" + mQty + "\n");
+            sendMessage("END\n");
+            sendMessage("JOBE\n");
+            addListView("印刷終了");
+            //　入力欄をクリア
+            clearText();
             return;
         }
-        //現在日時を取得する
-        Calendar c = Calendar.getInstance();
-        //フォーマットパターンを指定して表示する
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy.M.d");
-
-        sendMessage("JOB\n");
-        sendMessage("DEF MK=1,MD=1,DR=2,DK=12,MS=39,PO=45,TO=110,PH=344,PW=384,UM=12,BM=12,XO=0,AF=1\n");
-        sendMessage("START\n");
-        sendMessage("BCD TP=7,X=0,Y=0,NW=1,RA=2,MG=1,HT=80\n");
-        sendMessage(mBarCode + "\n");
-        sendMessage("FONT TP=7,CS=0,LG=60,WD=48,LS=0\n");
-        sendMessage("TEXT X=0,Y=120,L=1\n");
-        sendMessage(mBarCode + "\n");
-        sendMessage("FONT TP=27,CS=0,LG=32,WD=32,LS=0\n");
-        sendMessage("TEXT X=0,Y=260,L=1\n");
-        sendMessage(sdf.format(c.getTime()) + "\n");
-        sendMessage("TEXT X=250,Y=260,L=1,NS=1,NE=3,NK=1,NI=1,NZ=1,NB=0\n");
-        sendMessage("001/" + mQty + "\n");
-        sendMessage("QTY P=" + mQty + "\n");
-        sendMessage("END\n");
-        sendMessage("JOBE\n");
+        if (isMACAdrs(s) == true) {
+            // 画面にMACアドレスを表示
+            mAddress = s.substring(0,2)
+                        + ":" + s.substring(2,4)
+                        + ":" + s.substring(4,6)
+                        + ":" + s.substring(6,8)
+                        + ":" + s.substring(8,10)
+                        + ":" + s.substring(10);
+            addListView("接続: " + mAddress);
+            // MACアドレス
+            connectDeviceByAddress(mAddress,false);
+            //　入力欄をクリア
+            clearText();
+            return;
+        }
+        // 品番
+        mBarCode = s;
+        addListView("品番:" + mBarCode);
+        //　入力欄をクリア
+        clearText();
+//        mOutEditText.setInputType(InputType.TYPE_CLASS_NUMBER | InputType.TYPE_CLASS_TEXT);
+        return;
     }
 
     /**
@@ -317,7 +419,17 @@ public class BluetoothChatFragment extends Fragment {
         }
         actionBar.setSubtitle(subTitle);
     }
-
+    /*
+    *    リストビューにメッセージ表示
+    */
+    private void addListView(String msg) {
+        if (null != mConversationArrayAdapter) {
+            // メッセージを先頭行に追加
+//            mConversationArrayAdapter.insert(msg,0);
+            // メッセージを最下行に追加
+            mConversationArrayAdapter.add(msg);
+        }
+    }
     /**
      * The Handler that gets information back from the BluetoothChatService
      */
@@ -330,29 +442,32 @@ public class BluetoothChatFragment extends Fragment {
                     switch (msg.arg1) {
                         case BluetoothChatService.STATE_CONNECTED:
                             setStatus(getString(R.string.title_connected_to, mConnectedDeviceName));
-                            mConversationArrayAdapter.clear();
+                            addListView(getString(R.string.title_connected_to, mConnectedDeviceName));
+//                          mConversationArrayAdapter.clear();
                             break;
                         case BluetoothChatService.STATE_CONNECTING:
                             setStatus(R.string.title_connecting);
+                            addListView(getString(R.string.title_connecting));
                             break;
                         case BluetoothChatService.STATE_LISTEN:
                         case BluetoothChatService.STATE_NONE:
-                            setStatus(R.string.title_not_connected);
+//                            setStatus(R.string.title_not_connected);
+//                            addListView(getString(R.string.title_not_connected));
                             break;
                     }
                     break;
                 case Constants.MESSAGE_WRITE:
-                    byte[] writeBuf = (byte[]) msg.obj;
+ //                   byte[] writeBuf = (byte[]) msg.obj;
                     // construct a string from the buffer
-                    String writeMessage = new String(writeBuf);
-                    writeMessage = writeMessage.replaceAll("\n","");
-                    mConversationArrayAdapter.add(writeMessage);
+//                    String writeMessage = new String(writeBuf);
+//                    writeMessage = writeMessage.replaceAll("\n","");
+//                  addListView(writeMessage);
                     break;
                 case Constants.MESSAGE_READ:
-                    byte[] readBuf = (byte[]) msg.obj;
+//                    byte[] readBuf = (byte[]) msg.obj;
                     // construct a string from the valid bytes in the buffer
-                    String readMessage = new String(readBuf, 0, msg.arg1);
-                    mConversationArrayAdapter.add(mConnectedDeviceName + ":  " + readMessage);
+//                    String readMessage = new String(readBuf, 0, msg.arg1);
+//                    addListView(mConnectedDeviceName + ":  " + readMessage);
                     break;
                 case Constants.MESSAGE_DEVICE_NAME:
                     // save the connected device's name
@@ -360,14 +475,16 @@ public class BluetoothChatFragment extends Fragment {
                     if (null != activity) {
 //                        Toast.makeText(activity, "Connected to "
 //                                + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
-                        Toast.makeText(activity, "Bt接続OK "
-                                + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(activity, "Bt接続OK "
+//                                + mConnectedDeviceName, Toast.LENGTH_SHORT).show();
+                        addListView("Bt接続OK " + mConnectedDeviceName);
                     }
                     break;
                 case Constants.MESSAGE_TOAST:
                     if (null != activity) {
-                        Toast.makeText(activity, msg.getData().getString(Constants.TOAST),
-                                Toast.LENGTH_SHORT).show();
+//                        Toast.makeText(activity, msg.getData().getString(Constants.TOAST),
+//                                Toast.LENGTH_SHORT).show();
+                        addListView(msg.getData().getString(Constants.TOAST));
                     }
                     break;
             }
@@ -419,32 +536,25 @@ public class BluetoothChatFragment extends Fragment {
         mChatService.connect(device, secure);
     }
 
+    /**
+     * Bluetooth接続 アドレス指定
+     * @param address
+     * @param secure
+     */
+    private void connectDeviceByAddress(String address,boolean secure) {
+//        DeviceListActivity.EXTRA_DEVICE_ADDRESS = "ANDES";
+        // Get the BluetoothDevice object
+        BluetoothDevice device = mBluetoothAdapter.getRemoteDevice(address);
+        // Attempt to connect to the device
+        mChatService.connect(device, secure);
+    }
+
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
-        inflater.inflate(R.menu.bluetooth_chat, menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case R.id.secure_connect_scan: {
-                // Launch the DeviceListActivity to see devices and do scan
-                Intent serverIntent = new Intent(getActivity(), DeviceListActivity.class);
-                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_SECURE);
-                return true;
-            }
-            case R.id.insecure_connect_scan: {
-                // Launch the DeviceListActivity to see devices and do scan
-                Intent serverIntent = new Intent(getActivity(), DeviceListActivity.class);
-                startActivityForResult(serverIntent, REQUEST_CONNECT_DEVICE_INSECURE);
-                return true;
-            }
-            case R.id.discoverable: {
-                // Ensure this device is discoverable by others
-                ensureDiscoverable();
-                return true;
-            }
-        }
         return false;
     }
 

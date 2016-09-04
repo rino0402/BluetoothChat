@@ -1,22 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources>
-    <!--string name="app_name">BluetoothChat</string-->
-    <string name="app_name">簡易バーコード印刷</string>
+    <string name="app_name">DaVinciラベル印刷</string>
+    <string name="version">0.2</string>
     <string name="intro_message">
-<!--
         <![CDATA[
-        
-            
-            This application allows two Android devices to carry out two-way text chat over
-            Bluetooth. It demonstrates all the fundamental Bluetooth API capabilites, such as:
-              (1) Scanning for other Bluetooth devices
-              (2) Querying the local Bluetooth adapter for paired Bluetooth devices
-              (3) Establishing RFCOMM channels/sockets
-              (4) Connecting to a remote device
-              (5) Transfering data over Bluetooth
-            
-        
+            DaVinciラベル印刷
+            対応機種：DaVinci
+            　ラベル：
+            DaVinciラベルプリンタで品番バーコードラベルを印刷します。
         ]]>
--->
     </string>
 </resources>

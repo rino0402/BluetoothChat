@@ -283,7 +283,6 @@ containing a value of this type.
         public static final int center_vertical=0x7f090007;
         public static final int clip_horizontal=0x7f090008;
         public static final int clip_vertical=0x7f090009;
-        public static final int discoverable=0x7f090020;
         public static final int edit_text_out=0x7f09001b;
         public static final int end=0x7f09000a;
         public static final int fill=0x7f09000b;
@@ -291,17 +290,14 @@ containing a value of this type.
         public static final int fill_vertical=0x7f09000d;
         public static final int horizontal=0x7f090000;
         public static final int in=0x7f09001d;
-        public static final int insecure_connect_scan=0x7f09001f;
         public static final int left=0x7f09000e;
         public static final int log_fragment=0x7f090019;
-        public static final int menu_toggle_log=0x7f090021;
         public static final int new_devices=0x7f090015;
         public static final int paired_devices=0x7f090013;
         public static final int right=0x7f09000f;
         public static final int sample_content_fragment=0x7f09001a;
         public static final int sample_main_layout=0x7f090017;
         public static final int sample_output=0x7f090018;
-        public static final int secure_connect_scan=0x7f09001e;
         public static final int start=0x7f090010;
         public static final int title_new_devices=0x7f090014;
         public static final int title_paired_devices=0x7f090012;
@@ -316,8 +312,7 @@ containing a value of this type.
         public static final int message=0x7f030004;
     }
     public static final class menu {
-        public static final int bluetooth_chat=0x7f080000;
-        public static final int main=0x7f080001;
+        public static final int main=0x7f080000;
     }
     public static final class string {
         public static final int app_name=0x7f070000;
@@ -325,22 +320,6 @@ containing a value of this type.
         public static final int button_scan=0x7f070002;
         public static final int discoverable=0x7f070003;
         public static final int insecure_connect=0x7f070004;
-        /** 
-        <![CDATA[
-        
-            
-            This application allows two Android devices to carry out two-way text chat over
-            Bluetooth. It demonstrates all the fundamental Bluetooth API capabilites, such as:
-              (1) Scanning for other Bluetooth devices
-              (2) Querying the local Bluetooth adapter for paired Bluetooth devices
-              (3) Establishing RFCOMM channels/sockets
-              (4) Connecting to a remote device
-              (5) Transfering data over Bluetooth
-            
-        
-        ]]>
-
-         */
         public static final int intro_message=0x7f070005;
         public static final int none_found=0x7f070006;
         public static final int none_paired=0x7f070007;
@@ -356,6 +335,7 @@ containing a value of this type.
         public static final int title_not_connected=0x7f070011;
         public static final int title_other_devices=0x7f070012;
         public static final int title_paired_devices=0x7f070013;
+        public static final int version=0x7f070014;
     }
     public static final class style {
         public static final int AppTheme=0x7f050002;

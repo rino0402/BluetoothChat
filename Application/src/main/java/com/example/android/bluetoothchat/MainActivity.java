@@ -17,10 +17,16 @@
 
 package com.example.android.bluetoothchat;
 
+import android.app.AlertDialog;
+import android.content.Context;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v4.app.FragmentTransaction;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
 import android.widget.ViewAnimator;
 
 import com.example.android.common.activities.SampleActivityBase;
@@ -54,6 +60,10 @@ public class MainActivity extends SampleActivityBase {
             transaction.replace(R.id.sample_content_fragment, fragment);
             transaction.commit();
         }
+        //ソフトキーボードを出す
+        EditText editText = (EditText)findViewById(R.id.edit_text_out);
+        InputMethodManager inputMethodManager = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+        inputMethodManager.showSoftInput(editText, 0);
     }
 
     @Override
@@ -64,27 +74,27 @@ public class MainActivity extends SampleActivityBase {
 
     @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
-        MenuItem logToggle = menu.findItem(R.id.menu_toggle_log);
-        logToggle.setVisible(findViewById(R.id.sample_output) instanceof ViewAnimator);
-        logToggle.setTitle(mLogShown ? R.string.sample_hide_log : R.string.sample_show_log);
+//        MenuItem logToggle = menu.findItem(R.id.menu_toggle_log);
+//        logToggle.setVisible(findViewById(R.id.sample_output) instanceof ViewAnimator);
+//        logToggle.setTitle(mLogShown ? R.string.sample_hide_log : R.string.sample_show_log);
 
         return super.onPrepareOptionsMenu(menu);
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        switch(item.getItemId()) {
-            case R.id.menu_toggle_log:
-                mLogShown = !mLogShown;
-                ViewAnimator output = (ViewAnimator) findViewById(R.id.sample_output);
-                if (mLogShown) {
-                    output.setDisplayedChild(1);
-                } else {
-                    output.setDisplayedChild(0);
-                }
-                supportInvalidateOptionsMenu();
-                return true;
-        }
+//        switch(item.getItemId()) {
+//            case R.id.menu_toggle_log:
+//                mLogShown = !mLogShown;
+//                ViewAnimator output = (ViewAnimator) findViewById(R.id.sample_output);
+//                if (mLogShown) {
+//                    output.setDisplayedChild(1);
+//                } else {
+//                    output.setDisplayedChild(0);
+//                }
+//                supportInvalidateOptionsMenu();
+//                return true;
+//        }
         return super.onOptionsItemSelected(item);
     }
 
@@ -106,5 +116,31 @@ public class MainActivity extends SampleActivityBase {
         msgFilter.setNext(logFragment.getLogView());
 
         Log.i(TAG, "Ready");
+    }
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event){
+        if (keyCode == KeyEvent.KEYCODE_BACK){
+            new AlertDialog.Builder(this)
+                    .setTitle("アプリケーションの終了")
+                    .setMessage("アプリケーションを終了してよろしいですか？")
+                    .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // TODO 自動生成されたメソッド・スタブ
+                            MainActivity.this.finish();
+                        }
+                    })
+                    .setNegativeButton("No", new DialogInterface.OnClickListener() {
+
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            // TODO 自動生成されたメソッド・スタブ
+                        }
+                    })
+                    .show();
+            return true;
+        }
+        return false;
     }
 }
